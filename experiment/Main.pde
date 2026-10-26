@@ -1,10 +1,6 @@
 import java.util.Collections;
-import netP5.*;              // NEW (P1)
-import oscP5.*;              // NEW (P1)
-
-
-float neutralX = 0;         // "flat" for this person, set by calibrate()
-float neutralY = 0;
+import netP5.*;
+import oscP5.*;
 
 // --- Targets ---
 Target left;
@@ -37,14 +33,19 @@ boolean started = false;    // the light switch: off until Enter
 String participantID = "";  // grows as you type
 String device = "mouse";    // TAB switches it
 
-// --- Phone --- NEW (P1)
+// --- Phone ---
 OscP5 osc;
 float gx, gy, gz;           // raw tilt from ZigSim
-float pointerX, pointerY;   // where the phone dot is on screen
+float neutralX = 0;         // "flat" for this person, set by calibrate()
+float neutralY = 0;
+float smoothing = 0.25;     // 1 = no smoothing; smaller = calmer but laggier
+
+// --- Pointer (used by both devices) ---
+float pointerX, pointerY;   // where the cursor is, whichever device
 
 void setup() {
   size(1200, 600);
-  osc = new OscP5(this, 9000);   // NEW (P1): switch on the ears
+  osc = new OscP5(this, 9000);   // switch on the ears
   exp = new Study();
   exp.printConditions();
   setupTargets();
@@ -74,17 +75,30 @@ void draw() {
     textSize(18);
     text("Block " + block + " of " + totalBlocks, 20, 20);
 
-    // Phone dot, only when using the phone. NEW (P1)
+    // Update the cursor, and show the dot when using the phone
+    updatePointer();
     if (device.equals("phone")) {
-      pointerX = map(gx - neutralX, -0.5, 0.5, 0, width);
-    pointerY = map(gy - neutralY, -0.3, 0.3, 0, height);
-     
-      pointerX = constrain(pointerX, 0, width);
-      pointerY = constrain(pointerY, 0, height);
-
       fill(40, 90, 230);
       ellipse(pointerX, pointerY, 12, 12);
     }
+  }
+}
+
+// Where is the cursor right now? Works for both devices.
+void updatePointer() {
+  if (device.equals("phone")) {
+    // 1. Where the tilt says the dot should be
+    float rawX = map(gx - neutralX, -0.5, 0.5, 0, width);
+    float rawY = map(gy - neutralY, -0.3, 0.3, 0, height);  // tilt toward = up
+    rawX = constrain(rawX, 0, width);
+    rawY = constrain(rawY, 0, height);
+
+    // 2. Walk part of the way there (smoothing)
+    pointerX = lerp(pointerX, rawX, smoothing);
+    pointerY = lerp(pointerY, rawY, smoothing);
+  } else {
+    pointerX = mouseX;
+    pointerY = mouseY;
   }
 }
 
@@ -98,17 +112,24 @@ void drawStartScreen() {
   fill(120);
   text("Press ENTER to start", width/2, height/2 + 70);
   if (device.equals("phone")) {
-  text("Hold the phone comfortably, then press ENTER", width/2, height/2 + 110);
+    text("Hold the phone comfortably, then press ENTER", width/2, height/2 + 110);
   }
 }
 
-// The doorbell: runs by itself when a ZigSim message arrives. NEW (P1)
+// The doorbell: runs by itself when a ZigSim message arrives
 void oscEvent(OscMessage m) {
   if (m.checkAddrPattern("/ZIGSIM/amansiphone/gravity")) {
     gx = m.get(0).floatValue();
     gy = m.get(1).floatValue();
     gz = m.get(2).floatValue();
   }
+}
+
+// Press "zero": the current tilt becomes the middle of the screen
+void calibrate() {
+  neutralX = gx;
+  neutralY = gy;
+  println("Calibrated: neutral x = " + nf(neutralX, 1, 2) + "  y = " + nf(neutralY, 1, 2));
 }
 
 void mousePressed() {
@@ -122,14 +143,14 @@ void mousePressed() {
     return;
   }
 
-  // Which target is red? Did the click hit it?
+  // Which target is red? Did the pointer hit it?
   boolean hit;
   float targetX;
   if (leftActive) {
-    hit = left.contains(mouseX, mouseY);
+    hit = left.contains(pointerX, pointerY);
     targetX = left.x;
   } else {
-    hit = right.contains(mouseX, mouseY);
+    hit = right.contains(pointerX, pointerY);
     targetX = right.x;
   }
 
@@ -147,7 +168,7 @@ void mousePressed() {
   // From here on, every click gets a card
   int mt = millis() - lastHitTime;
   trialNumber = trialNumber + 1;
-  Trial t = new Trial(participantID, device, block, trialNumber, A, W, mt, hit, mouseX, mouseY, targetX);
+  Trial t = new Trial(participantID, device, block, trialNumber, A, W, mt, hit, pointerX, pointerY, targetX);
   trials.add(t);
   println("Trial " + trialNumber + "  hit: " + hit + "  MT: " + mt + " ms  cards in box: " + trials.size());
 
@@ -240,7 +261,7 @@ void saveData() {
 void keyPressed() {
   // At the start screen, keys are for typing
   if (!started) {
-        if (key == ENTER || key == RETURN) {
+    if (key == ENTER || key == RETURN) {
       if (participantID.length() > 0) {   // can't start with no name
         started = true;
         if (device.equals("phone")) {
@@ -264,7 +285,7 @@ void keyPressed() {
     return;
   }
 
-    // During the game, S is the backup save
+  // During the game, S is the backup save
   if (key == 's') {
     saveData();
   }
@@ -273,10 +294,4 @@ void keyPressed() {
   if (key == 'c' && device.equals("phone")) {
     calibrate();
   }
-}
-// Press "zero": the current tilt becomes the middle of the screen
-void calibrate() {
-  neutralX = gx;
-  neutralY = gy;
-  println("Calibrated: neutral x = " + nf(neutralX, 1, 2) + "  y = " + nf(neutralY, 1, 2));
 }
