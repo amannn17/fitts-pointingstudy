@@ -2,6 +2,10 @@ import java.util.Collections;
 import netP5.*;              // NEW (P1)
 import oscP5.*;              // NEW (P1)
 
+
+float neutralX = 0;         // "flat" for this person, set by calibrate()
+float neutralY = 0;
+
 // --- Targets ---
 Target left;
 Target right;
@@ -72,8 +76,8 @@ void draw() {
 
     // Phone dot, only when using the phone. NEW (P1)
     if (device.equals("phone")) {
-      pointerX = map(gx, -0.5, 0.5, 0, width);
-    pointerY = map(gy, -0.3, 0.3, 0, height);
+      pointerX = map(gx - neutralX, -0.5, 0.5, 0, width);
+    pointerY = map(gy - neutralY, -0.3, 0.3, 0, height);
      
       pointerX = constrain(pointerX, 0, width);
       pointerY = constrain(pointerY, 0, height);
@@ -93,6 +97,9 @@ void drawStartScreen() {
   textSize(20);
   fill(120);
   text("Press ENTER to start", width/2, height/2 + 70);
+  if (device.equals("phone")) {
+  text("Hold the phone comfortably, then press ENTER", width/2, height/2 + 110);
+  }
 }
 
 // The doorbell: runs by itself when a ZigSim message arrives. NEW (P1)
@@ -233,9 +240,12 @@ void saveData() {
 void keyPressed() {
   // At the start screen, keys are for typing
   if (!started) {
-    if (key == ENTER || key == RETURN) {
+        if (key == ENTER || key == RETURN) {
       if (participantID.length() > 0) {   // can't start with no name
         started = true;
+        if (device.equals("phone")) {
+          calibrate();
+        }
         println("Starting: " + participantID + ", " + device);
       }
     } else if (key == BACKSPACE) {
@@ -254,8 +264,19 @@ void keyPressed() {
     return;
   }
 
-  // During the game, S is the backup save
+    // During the game, S is the backup save
   if (key == 's') {
     saveData();
   }
+
+  // During the game, C re-zeros the phone
+  if (key == 'c' && device.equals("phone")) {
+    calibrate();
+  }
+}
+// Press "zero": the current tilt becomes the middle of the screen
+void calibrate() {
+  neutralX = gx;
+  neutralY = gy;
+  println("Calibrated: neutral x = " + nf(neutralX, 1, 2) + "  y = " + nf(neutralY, 1, 2));
 }
