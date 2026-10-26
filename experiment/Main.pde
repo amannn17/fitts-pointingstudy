@@ -1,4 +1,6 @@
 import java.util.Collections;
+import netP5.*;              // NEW (P1)
+import oscP5.*;              // NEW (P1)
 
 // --- Targets ---
 Target left;
@@ -17,7 +19,7 @@ int trialNumber = 0;
 float A = 400;
 float W = 40;
 int hitCount = 0;
-int hitsPerCondition = 10;   // TEST VALUE: set back to 10 after testing
+int hitsPerCondition = 10;
 
 // --- Rounds ---
 int block = 1;              // which round we're on
@@ -31,8 +33,14 @@ boolean started = false;    // the light switch: off until Enter
 String participantID = "";  // grows as you type
 String device = "mouse";    // TAB switches it
 
+// --- Phone --- NEW (P1)
+OscP5 osc;
+float gx, gy, gz;           // raw tilt from ZigSim
+float pointerX, pointerY;   // where the phone dot is on screen
+
 void setup() {
   size(1200, 600);
+  osc = new OscP5(this, 9000);   // NEW (P1): switch on the ears
   exp = new Study();
   exp.printConditions();
   setupTargets();
@@ -61,6 +69,18 @@ void draw() {
     textAlign(LEFT, TOP);
     textSize(18);
     text("Block " + block + " of " + totalBlocks, 20, 20);
+
+    // Phone dot, only when using the phone. NEW (P1)
+    if (device.equals("phone")) {
+      pointerX = map(gx, -0.5, 0.5, 0, width);
+    pointerY = map(gy, -0.3, 0.3, 0, height);
+     
+      pointerX = constrain(pointerX, 0, width);
+      pointerY = constrain(pointerY, 0, height);
+
+      fill(40, 90, 230);
+      ellipse(pointerX, pointerY, 12, 12);
+    }
   }
 }
 
@@ -73,6 +93,15 @@ void drawStartScreen() {
   textSize(20);
   fill(120);
   text("Press ENTER to start", width/2, height/2 + 70);
+}
+
+// The doorbell: runs by itself when a ZigSim message arrives. NEW (P1)
+void oscEvent(OscMessage m) {
+  if (m.checkAddrPattern("/ZIGSIM/amansiphone/gravity")) {
+    gx = m.get(0).floatValue();
+    gy = m.get(1).floatValue();
+    gz = m.get(2).floatValue();
+  }
 }
 
 void mousePressed() {
