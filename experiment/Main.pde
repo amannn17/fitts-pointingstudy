@@ -9,10 +9,14 @@ int trialNumber = 0;
 float A = 400;
 float W = 40;
 
+Study exp;
+
 void setup() {
   size(1200, 600);
   left = new Target(width/2 - A/2, height/2, W);
   right = new Target(width/2 + A/2, height/2, W);
+  exp = new Study();
+  exp.printConditions();
 }
 
 void draw() {

@@ -1,3 +1,5 @@
+import java.util.Collections;
+
 class Target {
   float x;
   float y;
