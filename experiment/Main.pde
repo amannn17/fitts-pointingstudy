@@ -1,6 +1,8 @@
 TargetL t;
 TargetR r;
 boolean leftActive = true;
+int lastHitTime = 0;
+boolean firstClick = true;
 
 void setup() {
   size(1200, 600);
@@ -23,10 +25,17 @@ void mousePressed() {
   }
 
   // Second question: what do we do about it?
-  if (hit) {
-    println("HIT");
-    leftActive = !leftActive;   // flip: the other circle turns red
+    if (hit) {
+    if (firstClick) {
+      println("START");
+      firstClick = false;
+    } else {
+      int mt = millis() - lastHitTime;
+      println("HIT  MT = " + mt + " ms");
+    }
+    lastHitTime = millis();
+    leftActive = !leftActive;
   } else {
-    println("MISS");            // stay on the same circle
+    println("MISS");
   }
 }
