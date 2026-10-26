@@ -1,33 +1,52 @@
 import java.util.Collections;
 
+// --- Targets ---
 Target left;
 Target right;
 boolean leftActive = true;
+
+// --- Timing ---
 int lastHitTime = 0;
 boolean firstClick = true;
 
+// --- Data ---
 ArrayList<Trial> trials = new ArrayList<Trial>();
 int trialNumber = 0;
+
+// --- Current card ---
 float A = 400;
 float W = 40;
+int hitCount = 0;
+int hitsPerCondition = 10;   // TEST VALUE: set back to 10 after testing
 
-int hitCount = 0;            
-int hitsPerCondition = 2;   
+// --- Rounds ---
+int block = 1;              // which round we're on
+int totalBlocks = 2;        // how many rounds in total
 
-int block = 1;          // round #
-int totalBlocks = 2;    // how many rounds in total
-
+// --- The dealer ---
 Study exp;
+
+// --- Start screen ---
+boolean started = false;    // the light switch: off until Enter
+String participantID = "";  // grows as you type
+String device = "mouse";    // TAB switches it
 
 void setup() {
   size(1200, 600);
   exp = new Study();
   exp.printConditions();
-  setupTargets();            // FIX 2: set the table
+  setupTargets();
 }
 
 void draw() {
   background(255);
+
+  // Start screen: draw the door and stop here
+  if (!started) {
+    drawStartScreen();
+    return;
+  }
+
   if (exp.isFinished()) {
     fill(0);
     textAlign(CENTER, CENTER);
@@ -45,7 +64,23 @@ void draw() {
   }
 }
 
+void drawStartScreen() {
+  fill(0);
+  textAlign(CENTER, CENTER);
+  textSize(28);
+  text("Participant ID: " + participantID + "_", width/2, height/2 - 60);
+  text("Device: " + device + "   (press TAB to switch)", width/2, height/2);
+  textSize(20);
+  fill(120);
+  text("Press ENTER to start", width/2, height/2 + 70);
+}
+
 void mousePressed() {
+  // Ignore clicks at the start screen
+  if (!started) {
+    return;
+  }
+
   // After the last card, clicks do nothing
   if (exp.isFinished()) {
     return;
@@ -62,7 +97,7 @@ void mousePressed() {
     targetX = right.x;
   }
 
-  // Before the start click, nothing is recorded (FIX 3: restored)
+  // Before the start click, nothing is recorded
   if (firstClick) {
     if (hit) {
       println("START");
@@ -76,19 +111,20 @@ void mousePressed() {
   // From here on, every click gets a card
   int mt = millis() - lastHitTime;
   trialNumber = trialNumber + 1;
-  Trial t = new Trial("P00", "mouse", block, trialNumber, A, W, mt, hit, mouseX, mouseY, targetX);  trials.add(t);
+  Trial t = new Trial(participantID, device, block, trialNumber, A, W, mt, hit, mouseX, mouseY, targetX);
+  trials.add(t);
   println("Trial " + trialNumber + "  hit: " + hit + "  MT: " + mt + " ms  cards in box: " + trials.size());
 
-  // Only a hit moves to the other target and restarts the timer (FIX 3: moved here)
+  // Only a hit moves to the other target and restarts the timer
   if (hit) {
     lastHitTime = millis();
     leftActive = !leftActive;
     hitCount = hitCount + 1;
 
-    // Enough baskets? Next card!
+    // Enough hits? Next card!
     if (hitCount == hitsPerCondition) {
       exp.next();
-            if (exp.isFinished()) {
+      if (exp.isFinished()) {
         if (block < totalBlocks) {
           // Not the last round: new dealer, new shuffle, play again
           block = block + 1;
@@ -106,6 +142,18 @@ void mousePressed() {
       }
     }
   }
+}
+
+void setupTargets() {
+  Condition c = exp.currentCondition();
+  A = c.A;
+  W = c.W;
+  left = new Target(width/2 - A/2, height/2, W);
+  right = new Target(width/2 + A/2, height/2, W);
+  leftActive = true;
+  firstClick = true;   // each new card needs its own start click
+  hitCount = 0;        // start counting hits from zero
+  println("New card: A = " + A + "  W = " + W);
 }
 
 void saveData() {
@@ -147,25 +195,38 @@ void saveData() {
     row.setFloat("targetX", t.targetX);
   }
 
-  // 3. Save it as a file
-  saveTable(table, "../data/P00_mouse.csv");
-  println("Saved " + trials.size() + " trials");
+  // 3. Save it as a file named after the participant and device
+  String filename = "../data/" + participantID + "_" + device + ".csv";
+  saveTable(table, filename);
+  println("Saved " + trials.size() + " trials to " + filename);
 }
 
 void keyPressed() {
+  // At the start screen, keys are for typing
+  if (!started) {
+    if (key == ENTER || key == RETURN) {
+      if (participantID.length() > 0) {   // can't start with no name
+        started = true;
+        println("Starting: " + participantID + ", " + device);
+      }
+    } else if (key == BACKSPACE) {
+      if (participantID.length() > 0) {
+        participantID = participantID.substring(0, participantID.length() - 1);
+      }
+    } else if (key == TAB) {
+      if (device.equals("mouse")) {
+        device = "phone";
+      } else {
+        device = "mouse";
+      }
+    } else if (Character.isLetterOrDigit(key)) {
+      participantID = participantID + key;
+    }
+    return;
+  }
+
+  // During the game, S is the backup save
   if (key == 's') {
     saveData();
   }
-}                            // FIX 4: keyPressed closes here
-
-void setupTargets() {        // FIX 4: now its own separate box
-  Condition c = exp.currentCondition();
-  A = c.A;
-  W = c.W;
-  left = new Target(width/2 - A/2, height/2, W);
-  right = new Target(width/2 + A/2, height/2, W);
-  leftActive = true;
-  firstClick = true;   // each new card needs its own start click
-  hitCount = 0;        // start counting baskets from zero
-  println("New card: A = " + A + "  W = " + W);
 }
