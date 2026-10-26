@@ -4,10 +4,15 @@ boolean leftActive = true;
 int lastHitTime = 0;
 boolean firstClick = true;
 
+ArrayList<Trial> trials = new ArrayList<Trial>();
+int trialNumber = 0;
+float A = 400;
+float W = 40;
+
 void setup() {
   size(1200, 600);
-  left = new Target(400, 300, 40);
-  right = new Target(800,300,40);
+  left = new Target(width/2 - A/2, height/2, W);
+  right = new Target(width/2 + A/2, height/2, W);
 }
 
 void draw() {
@@ -15,27 +20,40 @@ void draw() {
   left.display(leftActive);
   right.display(!leftActive);
 }
+
 void mousePressed() {
-  // First question: did the click land on the red circle?
+  // Which target is red? Did the click hit it?
   boolean hit;
+  float targetX;
   if (leftActive) {
     hit = left.contains(mouseX, mouseY);
+    targetX = left.x;
   } else {
     hit = right.contains(mouseX, mouseY);
+    targetX = right.x;
   }
 
-  // Second question: what do we do about it?
+  // Before the start click, nothing is recorded
+  if (firstClick) {
     if (hit) {
-    if (firstClick) {
       println("START");
       firstClick = false;
-    } else {
-      int mt = millis() - lastHitTime;
-      println("HIT  MT = " + mt + " ms");
+      lastHitTime = millis();
+      leftActive = !leftActive;
     }
+    return;
+  }
+
+  // From here on, every click gets a card
+  int mt = millis() - lastHitTime;
+  trialNumber = trialNumber + 1;
+  Trial t = new Trial("P00", "mouse", 1, trialNumber, A, W, mt, hit, mouseX, mouseY, targetX);
+  trials.add(t);
+  println("Trial " + trialNumber + "  hit: " + hit + "  MT: " + mt + " ms  cards in box: " + trials.size());
+
+  // Only a hit moves to the other target and restarts the timer
+  if (hit) {
     lastHitTime = millis();
     leftActive = !leftActive;
-  } else {
-    println("MISS");
   }
 }
