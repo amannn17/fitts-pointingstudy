@@ -39,6 +39,8 @@ float gx, gy, gz;           // raw tilt from ZigSim
 float neutralX = 0;         // "flat" for this person, set by calibrate()
 float neutralY = 0;
 float smoothing = 0.25;     // 1 = no smoothing; smaller = calmer but laggier
+int lastTouchTime = -1000;  // when the last touch message arrived
+boolean touching = false;   // was a finger down last frame?
 
 // --- Pointer (used by both devices) ---
 float pointerX, pointerY;   // where the cursor is, whichever device
@@ -80,6 +82,15 @@ void draw() {
     if (device.equals("phone")) {
       fill(40, 90, 230);
       ellipse(pointerX, pointerY, 12, 12);
+    }
+
+    // Phone tap: click once, at the moment the finger lands
+    if (device.equals("phone")) {
+      boolean touchingNow = millis() - lastTouchTime < 150;
+      if (touchingNow && !touching) {
+        handleClick();
+      }
+      touching = touchingNow;
     }
   }
 }
@@ -123,6 +134,11 @@ void oscEvent(OscMessage m) {
     gy = m.get(1).floatValue();
     gz = m.get(2).floatValue();
   }
+
+  // A finger is on the screen: write down when
+  if (m.checkAddrPattern("/ZIGSIM/amansiphone/touch01")) {
+    lastTouchTime = millis();
+  }
 }
 
 // Press "zero": the current tilt becomes the middle of the screen
@@ -132,7 +148,15 @@ void calibrate() {
   println("Calibrated: neutral x = " + nf(neutralX, 1, 2) + "  y = " + nf(neutralY, 1, 2));
 }
 
+// The mouse's button: only works when the mouse is the device
 void mousePressed() {
+  if (device.equals("mouse")) {
+    handleClick();
+  }
+}
+
+// What a click does, whichever device sent it
+void handleClick() {
   // Ignore clicks at the start screen
   if (!started) {
     return;
