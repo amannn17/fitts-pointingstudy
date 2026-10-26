@@ -12,7 +12,7 @@ float A = 400;
 float W = 40;
 
 int hitCount = 0;            
-int hitsPerCondition = 10;   
+int hitsPerCondition = 2;   
 
 int block = 1;          // round #
 int totalBlocks = 2;    // how many rounds in total
@@ -32,10 +32,16 @@ void draw() {
     fill(0);
     textAlign(CENTER, CENTER);
     textSize(32);
-    text("Block finished! Press S to save.", width/2, height/2);
+    text("All done! Thank you. Data saved.", width/2, height/2);
   } else {
     left.display(leftActive);
     right.display(!leftActive);
+
+    // Small label in the corner
+    fill(120);
+    textAlign(LEFT, TOP);
+    textSize(18);
+    text("Block " + block + " of " + totalBlocks, 20, 20);
   }
 }
 
@@ -82,8 +88,19 @@ void mousePressed() {
     // Enough baskets? Next card!
     if (hitCount == hitsPerCondition) {
       exp.next();
-      if (exp.isFinished()) {
-        println("DECK EMPTY: block finished");
+            if (exp.isFinished()) {
+        if (block < totalBlocks) {
+          // Not the last round: new dealer, new shuffle, play again
+          block = block + 1;
+          println("BLOCK " + block + " STARTING");
+          exp = new Study();
+          exp.printConditions();
+          setupTargets();
+        } else {
+          // Last round done: save automatically
+          println("ALL BLOCKS DONE");
+          saveData();
+        }
       } else {
         setupTargets();
       }
