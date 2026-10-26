@@ -55,5 +55,52 @@ void mousePressed() {
   if (hit) {
     lastHitTime = millis();
     leftActive = !leftActive;
+  }}
+void saveData() {
+  // 1. An empty table with the column names
+  Table table = new Table();
+  table.addColumn("participant");
+  table.addColumn("device");
+  table.addColumn("block");
+  table.addColumn("trial");
+  table.addColumn("A");
+  table.addColumn("W");
+  table.addColumn("ID");
+  table.addColumn("MT_ms");
+  table.addColumn("hit");
+  table.addColumn("clickX");
+  table.addColumn("clickY");
+  table.addColumn("targetX");
+
+  // 2. One row for each card in the box
+  for (Trial t : trials) {
+    TableRow row = table.addRow();
+    row.setString("participant", t.participant);
+    row.setString("device", t.device);
+    row.setInt("block", t.block);
+    row.setInt("trial", t.trial);
+    row.setFloat("A", t.A);
+    row.setFloat("W", t.W);
+    row.setFloat("ID", t.ID);
+    row.setInt("MT_ms", t.MT);
+
+    int hitValue = 0;
+    if (t.hit) {
+      hitValue = 1;
+    }
+    row.setInt("hit", hitValue);
+
+    row.setFloat("clickX", t.clickX);
+    row.setFloat("clickY", t.clickY);
+    row.setFloat("targetX", t.targetX);
+  }
+
+  // 3. Save it as a file
+  saveTable(table, "../data/P00_mouse.csv");
+  println("Saved " + trials.size() + " trials");
+}
+void keyPressed() {
+  if (key == 's') {
+    saveData();
   }
 }
