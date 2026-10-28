@@ -52,7 +52,7 @@ The mouse is the **baseline**. A phone throughput number means little on its own
 
 Both devices write into one shared pointer, and all selection logic lives in one function, so the experiment is identical for both; only the input differs. The phone sends gravity and touch data over OSC (ZigSim, oscP5).
 
-**Browser version** ([try it live](YOUR-GITHUB-PAGES-LINK) · [source](YOUR-fitts-study-REPO-LINK)). A port of the Processing version to one HTML file, hosted with GitHub Pages, so other people could take part with their own computer and phone:
+**Browser version** ([try it live](https://amannn17.github.io/pointing-study_remote/) · [source]((https://github.com/amannn17/pointing-study_remote))). A port of the Processing version to one HTML file, hosted with GitHub Pages, so other people could take part with their own computer and phone:
 - The computer shows a QR code; the phone opens it and connects directly to the computer (WebRTC via PeerJS).
 - The phone reports its tilt (DeviceOrientation, in degrees) and taps; the computer does all the calculation.
 - Each person's data is sent to a Google Sheet (Apps Script) and only reported as saved once the sheet confirms it, with a download as backup.
